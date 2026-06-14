@@ -20,7 +20,6 @@ if uploaded_file:
         st.subheader("📊 Region + Product Workforce Plan")
         st.dataframe(df)
 
-        # Pivot view
         st.subheader("📈 Pivot View: Hiring Need")
         pivot = df.pivot_table(
             values="To_Hire",
@@ -30,9 +29,8 @@ if uploaded_file:
         )
         st.dataframe(pivot)
 
-        # Charts
         st.subheader("📊 Hiring Demand by Product")
         st.bar_chart(df.groupby("Product")["To_Hire"].sum())
-
         st.subheader("🌍 Hiring Demand by Region")
         st.bar_chart(df.groupby("Region")["To_Hire"].sum())
+``
