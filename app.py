@@ -2,28 +2,40 @@ import streamlit as st
 import pandas as pd
 from backend_model import load_data, workforce_planning
 
-st.set_page_config(page_title="AI Workforce Planning", layout="wide")
+st.set_page_config(layout="wide")
 
 st.title("🚀 AI Enabled Workforce & Capacity Planning")
 
-# Upload file (or GitHub load)
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
+
     df_main, df_projects = load_data(uploaded_file)
 
-    st.success("✅ Data Loaded Successfully")
+    st.success("✅ Data Loaded")
 
-    if st.button("Run Forecast Model"):
-        df_results = workforce_planning(df_main, df_projects)
+    if st.button("Run AI Model"):
 
-        st.subheader("📊 Workforce Requirement Summary")
-        st.dataframe(df_results)
+        df = workforce_planning(df_main, df_projects)
 
-        # Charts
-        st.subheader("📈 Hiring Requirement by Product")
-        st.bar_chart(df_results.set_index("Product")["To_Hire"])
+        st.subheader("📊 Region + Product Workforce Plan")
+        st.dataframe(df)
 
-        st.subheader("📉 SR Demand vs Supply")
-        chart_df = df_results.set_index("Product")[["Total_SR", "Available_SR"]]
-        st.line_chart(chart_df)
+        # -------- Pivot View (Important for your viva) ----------
+        st.subheader("📈 Pivot View: To Hire")
+
+        pivot = df.pivot_table(
+            values="To_Hire",
+            index="Product",
+            columns="Region",
+            aggfunc="sum"
+        )
+
+        st.dataframe(pivot)
+
+        # -------- Charts ----------
+        st.subheader("📊 Hiring Demand by Product")
+        st.bar_chart(df.groupby("Product")["To_Hire"].sum())
+
+        st.subheader("🌍 Hiring Demand by Region")
+        st.bar_chart(df.groupby("Region")["To_Hire"].sum())
