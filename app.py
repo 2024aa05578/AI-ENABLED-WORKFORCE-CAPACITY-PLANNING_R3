@@ -36,4 +36,3 @@ if uploaded_file:
 
         st.subheader("🌍 Hiring Demand by Region")
         st.bar_chart(df.groupby("Region")["To_Hire"].sum())
-``
