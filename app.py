@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from backend_model import load_data, workforce_planning
 
 st.set_page_config(layout="wide")
@@ -21,21 +20,20 @@ if uploaded_file:
         st.subheader("📊 Region + Product Workforce Plan")
         st.dataframe(df)
 
-        # -------- Pivot View (Important for your viva) ----------
-        st.subheader("📈 Pivot View: To Hire")
-
+        # Pivot view
+        st.subheader("📈 Pivot View: Hiring Need")
         pivot = df.pivot_table(
             values="To_Hire",
             index="Product",
             columns="Region",
             aggfunc="sum"
         )
-
         st.dataframe(pivot)
 
-        # -------- Charts ----------
+        # Charts
         st.subheader("📊 Hiring Demand by Product")
         st.bar_chart(df.groupby("Product")["To_Hire"].sum())
 
         st.subheader("🌍 Hiring Demand by Region")
         st.bar_chart(df.groupby("Region")["To_Hire"].sum())
+``
