@@ -27,4 +27,3 @@ if uploaded_file:
         st.subheader("📉 SR Demand vs Supply")
         chart_df = df_results.set_index("Product")[["Total_SR", "Available_SR"]]
         st.line_chart(chart_df)
-``
