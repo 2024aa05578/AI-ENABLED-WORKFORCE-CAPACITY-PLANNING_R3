@@ -100,8 +100,7 @@ def sidebar_backend():
 def data_input_section():
     st.subheader("1) Baseline Inputs")
     st.caption(
-        "Provide baseline service engineer count, engineer capacity, work order volume, BAU growth, "
-        "and additional Data Center growth."
+        "Provide baseline service engineer count, engineer capacity, work order volume, BAU growth, and additional Data Center growth."
     )
 
     tab1, tab2, tab3 = st.tabs(["Engineer Baseline", "Work Orders / Growth", "Assumptions"])
@@ -127,18 +126,6 @@ def data_input_section():
         )
         st.session_state["engineers_df"] = engineers_df
 
-        st.download_button(
-            "Download Engineer Template CSV",
-            data=engineers_df.to_csv(index=False).encode("utf-8"),
-            file_name="baseline_engineers.csv",
-            mime="text/csv",
-        )
-
-        uploaded_engineers = st.file_uploader("Upload Engineer CSV", type=["csv"], key="upload_engineers")
-        if uploaded_engineers is not None:
-            st.session_state["engineers_df"] = pd.read_csv(uploaded_engineers)
-            st.success("Engineer baseline uploaded successfully.")
-
     with tab2:
         st.markdown("### Work Orders / Growth Input")
         wo_df = st.data_editor(
@@ -160,19 +147,89 @@ def data_input_section():
         )
         st.session_state["wo_df"] = wo_df
 
-        st.download_button(
-            "Download Work Order Template CSV",
-            data=wo_df.to_csv(index=False).encode("utf-8"),
-            file_name="work_orders.csv",
-            mime="text/csv",
-        )
-
-        uploaded_wo = st.file_uploader("Upload Work Order CSV", type=["csv"], key="upload_wo")
-        if uploaded_wo is not None:
-            st.session_state["wo_df"] = pd.read_csv(uploaded_wo)
-            st.success("Work order file uploaded successfully.")
-
     with tab3:
         st.markdown("### Planning Assumptions")
         assumptions = st.session_state["assumptions"]
 
+        c1, c2, c3 = st.columns(3)
+        assumptions["planning_horizon_months"] = c1.number_input(
+            "Planning Horizon (Months)", min_value=1, max_value=60, value=int(assumptions.get("planning_horizon_months", 12))
+        )
+        assumptions["target_utilization_pct"] = c2.number_input(
+            "Target Utilization %", min_value=10.0, max_value=100.0, value=float(assumptions.get("target_utilization_pct", 85.0)), step=1.0
+        )
+        assumptions["shrinkage_pct"] = c3.number_input(
+            "Shrinkage %", min_value=0.0, max_value=80.0, value=float(assumptions.get("shrinkage_pct", 12.0)), step=0.5
+        )
+
+        c4, c5 = st.columns(2)
+        assumptions["skill_buffer_pct"] = c4.number_input(
+            "Skill / Training Buffer %", min_value=0.0, max_value=80.0, value=float(assumptions.get("skill_buffer_pct", 10.0)), step=0.5
+        )
+        assumptions["default_monthly_capacity_per_engineer"] = c5.number_input(
+            "Default Monthly WO Capacity per Engineer", min_value=1, max_value=1000, value=int(assumptions.get("default_monthly_capacity_per_engineer", 35))
+        )
+
+        st.session_state["assumptions"] = assumptions
+
+
+def results_section():
+    st.subheader("2) Forecast Results")
+
+    engineers_df = st.session_state["engineers_df"].copy()
+    wo_df = st.session_state["wo_df"].copy()
+    assumptions = st.session_state["assumptions"].copy()
+
+    errors = validate_inputs(engineers_df, wo_df)
+    if errors:
+        for err in errors:
+            st.error(err)
+        st.stop()
+
+    monthly_forecast = build_monthly_forecast(engineers_df, wo_df, assumptions)
+    summary = summarize_latest_month(monthly_forecast)
+
+    total_current = int(summary["current_engineers"].sum())
+    total_required = int(summary["required_engineers"].sum())
+    total_gap = int(summary["gap_engineers"].sum())
+
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Current Engineers", total_current)
+    k2.metric("Required Engineers (Latest Month)", total_required)
+    k3.metric("Gap / Surplus", total_gap)
+
+    st.markdown("### Latest Month Summary")
+    st.dataframe(summary, use_container_width=True)
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.markdown("### Required Engineers by Product Line")
+        by_product = summary.groupby("product_line", as_index=False)["required_engineers"].sum().set_index("product_line")
+        st.bar_chart(by_product)
+
+    with c2:
+        st.markdown("### Required Engineers by Region")
+        by_region = summary.groupby("region", as_index=False)["required_engineers"].sum().set_index("region")
+        st.bar_chart(by_region)
+
+    st.markdown("### Monthly Forecast Detail")
+    st.dataframe(monthly_forecast, use_container_width=True)
+
+
+def main():
+    init_state()
+
+    st.title("AI Enabled Workforce & Capacity Planning")
+    st.write(
+        "This application forecasts service engineer requirements across product lines and regions. "
+        "It combines BAU forecast with additional Data Center business growth."
+    )
+
+    sidebar_backend()
+    data_input_section()
+    results_section()
+
+
+if __name__ == "__main__":
+    main()
