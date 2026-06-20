@@ -1,0 +1,13 @@
+
+ai-workforce-planning/
+
+│
+├── app.py
+├── workforce_model.py
+├── requirements.txt
+│
+├── data/
+│   └── workforce_input.csv
+│
+└── .streamlit/
+    └── config.toml
